@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: virgosoft_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - laravel
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    container_name: virgosoft_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - laravel
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: mysql:8.0
+    container_name: virgosoft_db
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: virgosoft
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: virgosoft
+      MYSQL_PASSWORD: password
+    volumes:
+      - virgosoft_db_data:/var/lib/mysql
+    networks:
+      - laravel
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: virgosoft_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - virgosoft_redis_data:/data
+    networks:
+      - laravel
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  soketi:
+    image: quay.io/soketi/soketi:latest-16-alpine
+    container_name: virgosoft_soketi
+    restart: unless-stopped
+    ports:
+      - "6003:6001"
+      - "6004:6002"
+    environment:
+      SOKETI_DEBUG: "1"
+      SOKETI_APP_MANAGER_DRIVER: array
+      SOKETI_APP_MANAGER_ARRAY_APPS_0_ID: app-id
+      SOKETI_APP_MANAGER_ARRAY_APPS_0_KEY: app-key
+      SOKETI_APP_MANAGER_ARRAY_APPS_0_SECRET: app-secret
+    networks:
+      - laravel
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:6001"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  laravel:
+    driver: bridge
+
+volumes:
+  virgosoft_db_data:
+    driver: local
+  virgosoft_redis_data:
+    driver: local
+
