@@ -2,6 +2,10 @@
 
 A mini cryptocurrency exchange platform built with Laravel (backend) and Vue.js (frontend), featuring real-time order matching, orderbook updates and secure trading operations.
 
+## 🎥 Video Walkthrough
+
+Watch a complete walkthrough of the application: [Video Demo](https://www.loom.com/share/d2f50b2f1ac34afa993a8bccfe775ae9)
+
 ## Overview
 
 VirgoSoft enables users to:
