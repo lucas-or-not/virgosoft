@@ -204,8 +204,15 @@ All services should show as "Up" and healthy.
 
 ### Running Tests
 
+**Backend Tests (Pest PHP)**:
 ```bash
 docker-compose exec app php artisan test
+```
+
+**Frontend Tests (Vitest)**:
+```bash
+# Run tests
+yarn test --run
 ```
 
 ### Running Artisan Commands
